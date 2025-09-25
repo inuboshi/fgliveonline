@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Game Info</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0c0a09;
+        }
+        .card-container {
+            transform: translateY(0);
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card-container:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 md:p-8">
+
+    <div class="w-full max-w-7xl bg-stone-900 text-gray-100 rounded-xl shadow-2xl p-6 md:p-8 space-y-8">
+
+        <header class="relative flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0">
+            <div class="text-center space-y-2">
+                <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-sky-500">Fighting Games on Steam</h1>
+            </div>
+            <a href="https://glossary.infil.net/" target="_blank" class="md:absolute md:right-0 px-4 py-2 text-sm md:text-base font-semibold text-gray-900 bg-gray-200 rounded-full hover:bg-white transition-colors duration-200 shadow-md">
+                Glossary
+            </a>
+        </header>
+
+        <div class="w-full flex items-center justify-center">
+            <input type="text" id="searchInput" placeholder="Search for a game..." class="w-full max-w-xl p-3 rounded-full bg-stone-800 border-2 border-stone-700 focus:outline-none focus:border-teal-400 transition-colors text-gray-200 placeholder-gray-500 shadow-inner">
+        </div>
+
+        <div id="gameCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        </div>
+
+        <div id="loading" class="text-gray-400 text-lg text-center">Loading game data...</div>
+        <div id="error" class="text-red-400 text-lg text-center hidden"></div>
+        
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameCardsContainer = document.getElementById('gameCardsContainer');
+            const searchInput = document.getElementById('searchInput');
+            const loadingIndicator = document.getElementById('loading');
+            const errorIndicator = document.getElementById('error');
+            
+            const games = [
+                { appId: "586140", name: "BLAZBLUE CENTRALFICTION", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/586140/header.jpg", frameDataUrl: "https://www.dustloop.com/w/BBCF", twitchUrl: "https://www.twitch.tv/directory/category/blazblue-central-fiction" },
+                { appId: "1384160", name: "GUILTY GEAR -STRIVE-", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1384160/header.jpg", frameDataUrl: "https://www.dustloop.com/w/GGST", twitchUrl: "https://www.twitch.tv/directory/category/guilty-gear-strive" },
+                { appId: "520440", name: "Guilty Gear Xrd Rev2", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/520440/header.jpg", frameDataUrl: "https://www.dustloop.com/w/GGXRD-R2", twitchUrl: "https://www.twitch.tv/directory/category/guilty-gear-xrd-rev-2" },
+                { appId: "348550", name: "GUILTY GEAR XX ACCENT CORE PLUS R", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/348550/header.jpg", frameDataUrl: "https://www.dustloop.com/w/GGACR", twitchUrl: "https://www.twitch.tv/directory/category/guilty-gear-xx-accent-core-plus-r" },
+                { appId: "1778820", name: "TEKKEN 8", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1778820/header.jpg", frameDataUrl: "https://tekkendocs.com/", twitchUrl: "https://www.twitch.tv/directory/category/tekken-8" },
+                { appId: "1364780", name: "Street Fighter™ 6", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1364780/header.jpg", frameDataUrl: "https://ultimateframedata.com/sf6/", twitchUrl: "https://www.twitch.tv/directory/category/street-fighter-6" },
+                { appId: "310950", name: "Street Fighter™ V", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/310950/header.jpg", frameDataUrl: "https://wiki.supercombo.gg/w/Street_Fighter_V", twitchUrl: "https://www.twitch.tv/directory/category/street-fighter-v" },
+                { appId: "1971870", name: "Mortal Kombat 1", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1971870/header.jpg", twitchUrl: "https://www.twitch.tv/directory/category/mortal-kombat-1" },
+                { appId: "307780", name: "MORTAL KOMBAT X", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/307780/header.jpg", twitchUrl: "https://www.twitch.tv/directory/category/mortal-kombat-xl" },
+                { appId: "976310", name: "Mortal Kombat 11", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/976310/header.jpg", twitchUrl: "https://www.twitch.tv/directory/category/mortal-kombat-11" },
+                { appId: "2157560", name: "Granblue Fantasy Versus: Rising", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/2157560/header.jpg", frameDataUrl: "https://www.dustloop.com/w/GBVSR", twitchUrl: "https://www.twitch.tv/directory/category/granblue-fantasy-versus-rising" },
+                { appId: "1498570", name: "THE KING OF FIGHTERS XV", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1498570/header.jpg", frameDataUrl: "https://dreamcancel.com/wiki/The_King_of_Fighters_XV", twitchUrl: "https://www.twitch.tv/directory/category/the-king-of-fighters-xv" },
+                { appId: "222440", name: "THE KING OF FIGHTERS 2002 UNLIMITED MATCH", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/222440/header.jpg", frameDataUrl: "https://dreamcancel.com/wiki/The_King_of_Fighters_2002_UM", twitchUrl: "https://www.twitch.tv/directory/category/the-king-of-fighters-2002-unlimited-match" },
+                { appId: "3050220", name: "THE KING OF FIGHTERS XIII GLOBAL MATCH", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/3050220/header.jpg", frameDataUrl: "https://dreamcancel.com/wiki/The_King_of_Fighters_XIII", twitchUrl: "https://www.twitch.tv/directory/category/the-king-of-fighters-xiii-global-match" },
+                { appId: "838380", name: "DEAD OR ALIVE 6", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/838380/header.jpg", frameDataUrl: "https://www.freestepdodge.com/wiki/frame-data-doa6/", twitchUrl: "https://www.twitch.tv/directory/category/dead-or-alive-6" },
+                { appId: "678950", name: "DRAGON BALL FighterZ", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/678950/header.jpg", frameDataUrl: "https://www.dustloop.com/w/DBFZ", twitchUrl: "https://www.twitch.tv/directory/category/dragon-ball-fighterz" },
+                { appId: "1372280", name: "MELTY BLOOD: TYPE LUMINA", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1372280/header.jpg", frameDataUrl: "https://wiki.gbl.gg/w/Melty_Blood/MBTL", twitchUrl: "https://www.twitch.tv/directory/category/melty-blood-type-lumina" },
+                { appId: "411370", name: "MELTY BLOOD Actress Again Current Code", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/411370/header.jpg", frameDataUrl: "https://wiki.gbl.gg/w/Melty_Blood/MBAACC", twitchUrl: "https://www.twitch.tv/directory/category/melty-blood-actress-again-current-code" },
+                { appId: "2076010", name: "UNDER NIGHT IN-BIRTH II Sys:Celes", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/2076010/header.jpg", frameDataUrl: "https://wiki.gbl.gg/w/Under_Night_In-Birth/UNI2/Frame_Data", twitchUrl: "https://www.twitch.tv/directory/category/under-night-in-birth-ii-sys-celes" },
+				{ appId: "2492040", name: "FATAL FURY: City of the Wolves", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/2492040/header.jpg", frameDataUrl: "https://dreamcancel.com/wiki/Fatal_Fury:_City_of_the_Wolves", twitchUrl: "https://www.twitch.tv/directory/category/fatal-fury-city-of-the-wolves" },
+				{ appId: "2400430", name: "Capcom Fighting Collection 2", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/2400430/header.jpg", frameDataUrl: "https://wiki.supercombo.gg/w/Capcom_vs_SNK_2", twitchUrl: "https://www.twitch.tv/directory/category/capcom-vs-snk-2-mark-of-the-millennium-2001" },
+				{ appId: "1685750", name: "Capcom Fighting Collection", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/1685750/header.jpg", twitchUrl: "https://www.twitch.tv/directory/category/capcom-fighting-collection" },
+				{ appId: "2634890", name: "MARVEL vs. CAPCOM Fighting Collection: Arcade Classics", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/2634890/header.jpg", frameDataUrl: "https://zachd.com/mvc2/data/", twitchUrl: "https://www.twitch.tv/directory/category/marvel-vs-capcom-2-new-age-of-heroes" },
+				{ appId: "357190", name: "Ultimate Marvel vs. Capcom 3", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/357190/header.jpg", frameDataUrl: "https://wiki.supercombo.gg/w/UMVC3", twitchUrl: "https://www.twitch.tv/directory/category/ultimate-marvel-vs-capcom-3" },
+				{ appId: "493840", name: "Marvel vs. Capcom: Infinite", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/493840/header.jpg", frameDataUrl: "https://wiki.supercombo.gg/w/Marvel_VS_Capcom:_Infinite", twitchUrl: "https://www.twitch.tv/directory/category/marvel-vs-capcom-infinite" },
+                { appId: "245170", name: "Skullgirls 2nd Encore", headerUrl: "https://cdn.akamai.steamstatic.com/steam/apps/245170/header.jpg", frameDataUrl: "https://wiki.gbl.gg/w/Skullgirls", twitchUrl: "https://www.twitch.tv/directory/category/skullgirls-2nd-encore" }
+            ];
+
+            const renderGameCards = (gamesToRender) => {
+                gameCardsContainer.innerHTML = '';
+                if (gamesToRender.length === 0) {
+                    gameCardsContainer.innerHTML = '<p class="text-gray-400 text-lg text-center">No games found.</p>';
+                    return;
+                }
+
+                gamesToRender.forEach(game => {
+                    const playerCountDisplay = game.player_count !== undefined ? game.player_count.toLocaleString() : '-';
+                    
+                    const minCount = 0;
+                    const maxCount = 1000;
+                    const hue = Math.min(Math.max(game.player_count || 0, minCount), maxCount) / maxCount * 120;
+                    const colorStyle = game.player_count !== undefined ? `style="color: hsl(${hue}, 80%, 60%);"` : '';
+
+                    const twitchButton = game.twitchUrl ?
+                        `<a href="${game.twitchUrl}" target="_blank" class="flex items-center justify-center p-2 h-10 w-10 bg-purple-600 rounded-full text-white font-bold text-sm shadow-md hover:bg-purple-700 transition-colors" title="Click to view on Twitch">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 1H7a2 2 0 00-2 2v14a2 2 0 002 2h4v2h-2v2h6v-2h-2v-2h4a2 2 0 002-2V3a2 2 0 00-2-2zm-2 15H9V5h6v11z"/>
+                            </svg>
+                        </a>`
+                        : '';
+
+                    const frameDataButton = game.frameDataUrl ? 
+                        `<a href="${game.frameDataUrl}" target="_blank" class="flex items-center justify-center p-2 h-10 w-10 bg-orange-600 rounded-full text-white font-bold text-sm shadow-md hover:bg-orange-700 transition-colors" title="Click to access frame data for the game">FD</a>`
+                        : '';
+
+                    const gameCardHtml = `
+                        <div class="w-full bg-stone-800 rounded-xl shadow-lg transition-all duration-300 card-container">
+                            <a href="https://store.steampowered.com/app/${game.appId}/" target="_blank" class="block w-full rounded-t-xl overflow-hidden group">
+                                <img src="${game.headerUrl}" alt="${game.name} header image" class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                                    onerror="this.onerror=null;this.src='https://placehold.co/600x300/1e293b/a5f3fc?text=${encodeURIComponent(game.name)}'">
+                            </a>
+                            <div class="p-4 md:p-6 space-y-4">
+                                <h2 class="text-center text-lg md:text-xl font-bold text-teal-400 truncate">${game.name}</h2>
+                                <div class="grid grid-cols-1 sm:grid-cols-1 gap-4 text-sm md:text-base">
+                                    <div class="flex items-center justify-between p-3 bg-stone-700 rounded-lg shadow-inner">
+                                        <div class="flex flex-col items-start justify-center">
+                                            <p class="font-semibold text-gray-300">Players online</p>
+                                            <p class="text-lg md:text-xl font-bold playerCount" data-app-id="${game.appId}" ${colorStyle}>${playerCountDisplay}</p>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            ${twitchButton}
+                                            ${frameDataButton}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    gameCardsContainer.innerHTML += gameCardHtml;
+                });
+            };
+
+            const fetchPlayerCounts = async () => {
+                loadingIndicator.classList.remove('hidden');
+                errorIndicator.classList.add('hidden');
+                let fetchedGames = [...games];
+
+                const fetchPromises = fetchedGames.map(async game => {
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${game.appId}`)}`;
+                    
+                    let retries = 3;
+                    while (retries > 0) {
+                        try {
+                            const response = await fetch(proxyUrl);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            const data = await response.json();
+                            game.player_count = data.response.player_count;
+                            return game;
+                        } catch (error) {
+                            console.error(`Error fetching player count for app ${game.appId}:`, error);
+                            retries--;
+                            if (retries === 0) {
+                                game.player_count = 'N/A';
+                                return game;
+                            }
+                            await new Promise(res => setTimeout(res, (3 - retries) * 1000));
+                        }
+                    }
+                });
+
+                const results = await Promise.all(fetchPromises);
+                loadingIndicator.classList.add('hidden');
+
+                results.sort((a, b) => (b.player_count || 0) - (a.player_count || 0));
+                
+                window.allGames = results;
+                
+                renderGameCards(window.allGames);
+            };
+
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredGames = window.allGames.filter(game => 
+                    game.name.toLowerCase().includes(searchTerm)
+                );
+                renderGameCards(filteredGames);
+            });
+
+            fetchPlayerCounts();
+        });
+    </script>
+</body>
+</html>
